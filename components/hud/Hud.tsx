@@ -131,6 +131,14 @@ function Dash() {
       ref={root}
       className="hud-bar glass pointer-events-none fixed inset-x-0 bottom-0 z-40 transition-opacity duration-300"
     >
+      <div aria-hidden className="glass absolute bottom-full right-4 mb-2 hidden w-60 p-3 sm:right-6 md:block lg:right-10 lg:w-72">
+        <p className="mb-1.5 flex justify-between font-mono text-xs text-muted">
+          <span>Monaco</span>
+          <span>3.337 km</span>
+        </p>
+        <TrackMap />
+      </div>
+
       <div ref={revs} aria-hidden className="flex gap-px">
         {revColors.map((color, index) => (
           <span key={index} className={`h-1 flex-1 ${color}`} style={{ opacity: 0.12 }} />
@@ -139,9 +147,6 @@ function Dash() {
 
       <div className="flex h-11 items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-10">
         <div aria-hidden className="flex min-w-0 flex-1 items-center gap-4 font-mono lg:gap-6">
-          <div className="hidden w-12 shrink-0 lg:block">
-            <TrackMap />
-          </div>
           <p ref={corner} className="hidden w-40 shrink-0 truncate text-xs font-medium text-lime md:block">
             {corners[0].name}
           </p>

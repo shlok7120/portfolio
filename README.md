@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# One Lap
 
-## Getting Started
+Shlok Patel's F1-themed portfolio. The page is one flying lap of a fictional circuit:
+scrolling drives a 3D car while a live HUD shows speed, gear, revs and lap time.
 
-First, run the development server:
+Built with Next.js, TypeScript, Tailwind CSS, React Three Fiber and Lenis. The car and track
+are generated in code, and the sound is synthesised, so there are no model or audio files.
+The 3D look comes from postprocessing (bloom, tone mapping and speed blur).
+
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Edit the content
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| To change | Edit |
+|---|---|
+| Name, links and about text | `content/profile.ts` |
+| A project's race report | `content/projects/` |
+| Skills | `content/skills.ts` |
+| Season calendar | `content/season.ts` |
 
-## Learn More
+## Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Copy `.env.example` to `.env.local`. Everything is optional. Without `RESEND_API_KEY`, the
+contact form opens the visitor's email app.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Modes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Day and night:** follows the visitor's clock (day from 6 am to 6 pm) until they pick one in the nav.
+- **Safety Car:** a plain version with no animation. It's on by default for people who turn
+  off motion in their system settings.
+- **Light lap:** phones and touch devices get a 2D track instead of the 3D scene.
+- **Pit stop challenge:** enter the Konami code, or tap the car number on the licence card
+  seven times.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Not affiliated with Formula 1 or any racing team.

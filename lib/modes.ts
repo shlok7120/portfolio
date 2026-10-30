@@ -5,7 +5,7 @@ const skyKey = "sp75-sky";
 export type Sky = "day" | "golden" | "night";
 export type Modes = { safety: boolean; wet: boolean; day: boolean; golden: boolean };
 
-const serverModes: Modes = { safety: false, wet: false, day: false, golden: false };
+const serverModes: Modes = { safety: false, wet: false, day: false, golden: true };
 const listeners = new Set<() => void>();
 let modes: Modes | null = null;
 

@@ -32,7 +32,7 @@ contact form opens the visitor's email app.
 
 ## Modes
 
-- **Day, golden hour and night:** follows the visitor's clock until they pick one in the nav.
+- **Golden hour, day and night:** starts in golden hour until the visitor picks another in the nav.
 - **Team radio:** messages from the pit wall pop up during the lap and link to the projects.
 - **Pit garage:** the Setup section opens a 3D view of the car where each part shows a group of skills.
 - **Test drive:** four project pages have a demo. The Fleet rules and TimeWeave solvers really run in

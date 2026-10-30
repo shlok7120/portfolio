@@ -24,18 +24,18 @@ export function TrackMap() {
 
   return (
     <svg viewBox={circuitViewBox} fill="none" className="w-full">
-      <path ref={path} d={circuitPath} stroke="var(--color-line)" strokeWidth="16" strokeLinejoin="round" />
+      <path ref={path} d={circuitPath} stroke="var(--color-line)" strokeWidth="44" strokeLinejoin="round" />
       <path
         ref={trail}
         d={circuitPath}
         pathLength={1}
         stroke="var(--color-lime)"
-        strokeWidth="7"
+        strokeWidth="44"
         strokeLinejoin="round"
         strokeDasharray="1"
         strokeDashoffset="1"
       />
-      <circle ref={dot} r="17" fill="var(--color-lime)" stroke="var(--color-carbon)" strokeWidth="5" />
+      <circle ref={dot} r="62" fill="var(--color-lime)" stroke="var(--color-carbon)" strokeWidth="5" />
     </svg>
   );
 }

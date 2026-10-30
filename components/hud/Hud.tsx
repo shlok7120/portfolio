@@ -129,77 +129,74 @@ function Dash() {
   return (
     <div
       ref={root}
-      className="dash glass pointer-events-none fixed inset-x-0 bottom-0 z-40 transition-opacity duration-300 md:inset-x-auto md:bottom-5 md:right-5 md:w-80 md:p-4"
+      className="hud-bar glass pointer-events-none fixed inset-x-0 bottom-0 z-40 transition-opacity duration-300"
     >
-      <div aria-hidden>
-        <div className="hidden md:block">
-          <TrackMap />
-        </div>
-        <p ref={corner} className="mb-2 mt-1 hidden font-mono text-xs font-bold text-lime md:block">
-          {corners[0].name}
-        </p>
+      <div ref={revs} aria-hidden className="flex gap-px">
+        {revColors.map((color, index) => (
+          <span key={index} className={`h-1 flex-1 ${color}`} style={{ opacity: 0.12 }} />
+        ))}
+      </div>
 
-        <div ref={revs} className="flex gap-0.5 md:gap-1">
-          {revColors.map((color, index) => (
-            <span key={index} className={`h-1 flex-1 md:h-2 ${color}`} style={{ opacity: 0.12 }} />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-3 items-center px-4 py-1.5 font-mono md:px-0 md:py-2">
-          <p>
-            <span ref={speed} className="block text-lg leading-none text-ink md:text-2xl">
+      <div className="flex h-11 items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-10">
+        <div aria-hidden className="flex min-w-0 flex-1 items-center gap-4 font-mono lg:gap-6">
+          <div className="hidden w-12 shrink-0 lg:block">
+            <TrackMap />
+          </div>
+          <p ref={corner} className="hidden w-40 shrink-0 truncate text-xs font-medium text-lime md:block">
+            {corners[0].name}
+          </p>
+          <p className="flex shrink-0 items-baseline gap-1">
+            <span ref={speed} className="w-9 text-right text-base leading-none text-ink">
               0
             </span>
             <span className="text-[0.65rem] text-muted">km/h</span>
           </p>
-          <span ref={gear} className="font-display text-center text-3xl text-lime md:text-5xl">
+          <span ref={gear} className="font-display w-5 shrink-0 text-center text-2xl leading-none text-lime">
             N
           </span>
-          <p className="text-right">
-            <span ref={lap} className="block text-sm leading-none text-ink md:text-base">
+          <p className="ml-auto flex shrink-0 items-baseline gap-1.5 md:ml-0">
+            <span className="text-[0.65rem] text-muted">Lap</span>
+            <span ref={lap} className="text-sm leading-none text-ink">
               0:00.000
             </span>
-            <span className="text-[0.65rem] text-muted">Lap</span>
           </p>
+          <div className="hidden shrink-0 gap-4 text-xs text-muted lg:flex">
+            {[0, 1, 2].map((index) => (
+              <p key={index}>
+                S{index + 1}{" "}
+                <span
+                  ref={(node) => {
+                    sectors.current[index] = node;
+                  }}
+                >
+                  --.-
+                </span>
+              </p>
+            ))}
+          </div>
+          <svg
+            viewBox={`0 0 ${traceLength - 1} ${traceHeight}`}
+            preserveAspectRatio="none"
+            className="hidden h-6 min-w-0 flex-1 xl:block"
+          >
+            <polyline
+              ref={trace}
+              fill="none"
+              stroke="var(--color-lime)"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
         </div>
 
-        <svg
-          viewBox={`0 0 ${traceLength - 1} ${traceHeight}`}
-          preserveAspectRatio="none"
-          className="mb-2 hidden h-8 w-full md:block"
+        <Link
+          ref={drs}
+          href="/#results"
+          className="drs pointer-events-auto hidden shrink-0 border border-line px-3 py-1 font-mono text-xs text-muted hover:border-lime hover:text-lime md:block"
         >
-          <polyline
-            ref={trace}
-            fill="none"
-            stroke="var(--color-lime)"
-            strokeWidth="1.5"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-
-        <div className="hidden grid-cols-3 border-t border-line pt-2 font-mono text-xs text-muted md:grid">
-          {[0, 1, 2].map((index) => (
-            <p key={index} className={index === 1 ? "text-center" : index === 2 ? "text-right" : ""}>
-              S{index + 1}{" "}
-              <span
-                ref={(node) => {
-                  sectors.current[index] = node;
-                }}
-              >
-                --.-
-              </span>
-            </p>
-          ))}
-        </div>
+          DRS
+        </Link>
       </div>
-
-      <Link
-        ref={drs}
-        href="/#results"
-        className="drs pointer-events-auto mt-2 hidden border border-line py-1.5 text-center font-mono text-xs text-muted hover:border-lime hover:text-lime md:block"
-      >
-        DRS · Skip to results
-      </Link>
     </div>
   );
 }

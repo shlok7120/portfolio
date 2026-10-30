@@ -89,6 +89,10 @@ section[id] {
   background-position: 0 0, 12px 12px;
 }
 
+.glass.hud-bar {
+  border-width: 1px 0 0;
+}
+
 .glass {
   background: color-mix(in srgb, var(--color-carbon) 84%, transparent);
   backdrop-filter: blur(16px) saturate(1.25);
@@ -139,11 +143,6 @@ section[id] {
 .btn-ghost {
   background: color-mix(in srgb, var(--color-carbon) 78%, transparent);
   color: var(--color-ink);
-}
-
-/* Chamfered shoulders echo a steering wheel display */
-.dash {
-  clip-path: polygon(1.1rem 0, calc(100% - 1.1rem) 0, 100% 1.1rem, 100% 100%, 0 100%, 0 1.1rem);
 }
 
 .mask {

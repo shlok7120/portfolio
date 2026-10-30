@@ -132,8 +132,8 @@ function Billboard({ u, offset, title, stat, day }: { u: number; offset: number;
   return (
     <group position={position} rotation={[0, facing, 0]}>
       {[-5.5, 5.5].map((x) => (
-        <mesh key={x} position={[x, -2, -0.2]}>
-          <boxGeometry args={[0.25, 4, 0.25]} />
+        <mesh key={x} position={[x, -6, -0.2]}>
+          <boxGeometry args={[0.25, 12, 0.25]} />
           <meshStandardMaterial color={day ? "#3a3f47" : "#14171b"} />
         </mesh>
       ))}
@@ -233,7 +233,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       const { point, side, yaw } = along(i / 44);
       const direction = i % 2 ? 1 : -1;
       const base = point.clone().addScaledVector(side, direction * (trackHalfWidth + 7));
-            poles.push({ position: base.clone().setY(point.y + 13), scale: new Vector3(1, 1, 1) });
+            poles.push({ position: base.clone().setY(point.y + 10.4), scale: new Vector3(1, 1.2, 1) });
       lamps.push({ position: base.clone().addScaledVector(side, -direction).setY(point.y + 26), scale: new Vector3(1, 1, 1), yaw });
     }
     return { poles, lamps };
@@ -242,6 +242,8 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
   const stand = useMemo(() => {
     const tiers: Item[] = [];
     const roofs: Item[] = [];
+    const backing: Item[] = [];
+    const floor = -8;
     const span = 0.1;
     const bays = 12;
     for (let bay = 0; bay < bays; bay++) {
@@ -252,17 +254,46 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
           scale: new Vector3(2, 1.5, 21),
           yaw,
         });
+        // Solid concrete under each row, so the stand reaches the ground
+        const underside = 0.35 + tier * 1.5;
+        backing.push({
+          position: point.clone().addScaledVector(side, -(trackHalfWidth + 9 + tier * 2)).setY(point.y + (underside + floor) / 2),
+          scale: new Vector3(2, underside - floor, 21),
+          yaw,
+        });
       }
+      backing.push({
+        position: point.clone().addScaledVector(side, -(trackHalfWidth + 23.2)).setY(point.y + (14.5 + floor) / 2),
+        scale: new Vector3(0.6, 14.5 - floor, 21),
+        yaw,
+      });
       roofs.push({
         position: point.clone().addScaledVector(side, -(trackHalfWidth + 15)).setY(point.y + 14.5),
         scale: new Vector3(18, 0.4, 21),
         yaw,
       });
     }
-    return { tiers, roofs };
+    return { tiers, roofs, backing };
   }, []);
 
-  const pits = useMemo(() => along(0.045), []);
+  // Short bays that follow the road, skipped wherever another stretch of track passes
+  const pits = useMemo(() => {
+    const bodies: Item[] = [];
+    const glass: Item[] = [];
+    const stripes: Item[] = [];
+    const bays = 24;
+    const bayLength = 10;
+    for (let bay = 0; bay < bays; bay++) {
+      const { point, side, yaw } = along(0.06 + (bay * bayLength) / circuitLength);
+      const centre = point.clone().addScaledVector(side, trackHalfWidth + 14);
+      if (distanceToTrack(centre.x, centre.z) < trackHalfWidth + 13) continue;
+      const front = point.clone().addScaledVector(side, trackHalfWidth + 6.95);
+      bodies.push({ position: centre.clone().setY(point.y + 2), scale: new Vector3(14, 20, bayLength + 0.4), yaw });
+      glass.push({ position: front.clone().setY(point.y + 7.6), scale: new Vector3(0.1, 3.6, bayLength + 0.4), yaw });
+      stripes.push({ position: front.clone().setY(point.y + 11.4), scale: new Vector3(0.1, 0.4, bayLength + 0.4), yaw });
+    }
+    return { bodies, glass, stripes };
+  }, []);
   const monument = useMemo(() => along(0.9955), []);
   const crowd = useMemo(() => crowdTexture(), []);
   const seventyFive = useMemo(() => numberGeometry(), []);
@@ -305,31 +336,33 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial map={crowd} roughness={0.9} emissiveMap={crowd} emissive="#ffffff" emissiveIntensity={day ? 0 : 0.1} />
       </Instances>
+      <Instances items={stand.backing}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={day ? "#cfc9bc" : "#14161a"} roughness={0.9} />
+      </Instances>
       <Instances items={stand.roofs}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color={day ? "#dfe4ea" : "#1a1d22"} metalness={0.3} roughness={0.5} />
       </Instances>
 
-      <group position={pits.point.clone().addScaledVector(pits.side, trackHalfWidth + 14).setY(pits.point.y + 6)} rotation={[0, pits.yaw, 0]}>
-        <mesh>
-          <boxGeometry args={[14, 12, 200]} />
-          <meshStandardMaterial color={day ? "#e4e8ed" : "#14171c"} metalness={0.25} roughness={0.35} />
-        </mesh>
-        <mesh position={[-7.05, 1.6, 0]}>
-          <boxGeometry args={[0.1, 3.6, 196]} />
-          <meshBasicMaterial color={day ? "#3a5a7a" : [1.6, 1.9, 1]} toneMapped={false} />
-        </mesh>
-        <mesh position={[-7.1, 5.4, 0]}>
-          <boxGeometry args={[0.1, 0.4, 200]} />
-          <meshBasicMaterial color={day ? "#b80f1b" : "#b6f000"} toneMapped={false} />
-        </mesh>
-      </group>
+      <Instances items={pits.bodies}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={day ? "#e4e8ed" : "#14171c"} metalness={0.25} roughness={0.35} />
+      </Instances>
+      <Instances items={pits.glass}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color={day ? "#3a5a7a" : [1.6, 1.9, 1]} toneMapped={false} />
+      </Instances>
+      <Instances items={pits.stripes}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color={day ? "#b80f1b" : "#b6f000"} toneMapped={false} />
+      </Instances>
 
       <mesh
-        position={monument.point.clone().addScaledVector(monument.side, trackHalfWidth + 12.4).setY(monument.point.y + 5.1)}
+        position={monument.point.clone().addScaledVector(monument.side, trackHalfWidth + 12.4).setY(monument.point.y + 1.4)}
         rotation={[0, monument.yaw + Math.PI / 2, 0]}
       >
-        <boxGeometry args={[19, 10.6, 0.5]} />
+        <boxGeometry args={[19, 18, 0.5]} />
         <meshStandardMaterial color={day ? "#f4f1ea" : "#0c0e12"} roughness={0.5} />
       </mesh>
       <mesh

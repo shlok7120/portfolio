@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ExtrudeGeometry, MeshStandardMaterial, Shape, Vector2 } from "three";
-import { casinoSpot, circuit, groundAt, hotelSpot } from "@/lib/circuit";
+import { casinoSpot, circuit, hotelSpot, seatAt } from "@/lib/circuit";
 import { addWindows } from "./surfaces";
 
 const lowestPoint = (() => {
@@ -47,7 +47,7 @@ function Dome({ position, radius }: { position: [number, number, number]; radius
 
 function Casino({ wall, stone }: { wall: MeshStandardMaterial; stone: MeshStandardMaterial }) {
   const [x, z] = casinoSpot;
-  const ground = groundAt(x, z) + 1;
+  const ground = seatAt(x, z, 30);
   return (
     <group position={[x, ground, z]} rotation={[0, -0.7, 0]}>
       <mesh material={wall} position={[0, 9, 0]}>
@@ -89,7 +89,7 @@ function Casino({ wall, stone }: { wall: MeshStandardMaterial; stone: MeshStanda
 
 function GrandHotel({ wall, stone }: { wall: MeshStandardMaterial; stone: MeshStandardMaterial }) {
   const [x, z] = hotelSpot;
-  const ground = groundAt(x, z) + 1;
+  const ground = seatAt(x, z, 30);
   return (
     <group position={[x, ground, z]} rotation={[0, 0.5, 0]}>
       <mesh material={wall} position={[0, 15, 0]}>

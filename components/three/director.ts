@@ -53,8 +53,9 @@ function frameShot(shot: ShotName, { point, tangent, side, u, orbit }: Pose, out
       out.fov = 32;
       break;
     case "heli":
-      position.copy(point).addScaledVector(tangent, -15).addScaledVector(side, 9).addScaledVector(up, 11);
-      target.copy(point).addScaledVector(tangent, 3);
+      // High enough to clear the palms, gantries and floodlights
+      position.copy(point).addScaledVector(tangent, -26).addScaledVector(side, 8).addScaledVector(up, 34);
+      target.copy(point).addScaledVector(tangent, 6);
       out.fov = 30;
       break;
     case "harbour":

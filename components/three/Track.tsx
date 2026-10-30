@@ -29,11 +29,15 @@ import {
   circuit,
   circuitLength,
   distanceToTrack,
-  groundAt,
   inSea,
   nearLandmark,
   sampleTrack,
   seaOutline,
+  clearReach,
+  seatAt,
+  terrainHeight,
+  terrainSize,
+  terrainSteps,
   trackHalfWidth,
   type TrackSample,
 } from "@/lib/circuit";
@@ -47,9 +51,46 @@ const tarmacRepeat = 30;
 const cityPaint = ["#efe3cd", "#e8cfae", "#e6bd9a", "#f1dcc3", "#d9c7ad", "#f3ece0"];
 const nightPaint = ["#191c22", "#1d1e22", "#1a1a1e"];
 
+type Edge = number | ((sample: TrackSample, index: number) => number);
+
+const pavementReach = trackHalfWidth + 6;
+const reachCache = new Map<number, Float32Array>();
+
+// Beside another stretch of road the pavement narrows, so it can't spread across it
+function sideReach(direction: number) {
+  const cached = reachCache.get(direction);
+  if (cached) return cached;
+  const reaches = new Float32Array(samples.length);
+  samples.forEach((sample, i) => {
+    const { point, side } = sample;
+    reaches[i] = clearReach(point.x, point.z, side.x * direction, side.z * direction, i / samples.length, pavementReach, trackHalfWidth + 1.3);
+  });
+  const smoothed = softenReach(reaches);
+  reachCache.set(direction, smoothed);
+  return smoothed;
+}
+
+function softenReach(reaches: Float32Array) {
+  const span = 7;
+  const count = reaches.length;
+  const narrowest = reaches.map((_, i) => {
+    let lowest = Infinity;
+    for (let j = -span; j <= span; j++) lowest = Math.min(lowest, reaches[(i + j + count) % count]);
+    return lowest;
+  });
+  return narrowest.map((_, i) => {
+    let total = 0;
+    for (let j = -span; j <= span; j++) total += narrowest[(i + j + count) % count];
+    return total / (span * 2 + 1);
+  });
+}
+
+const pavementEdge = (direction: number) => (_: TrackSample, index: number) =>
+  sideReach(direction)[index % samples.length] * direction;
+
 function ribbon(
-  inner: number,
-  outer: number,
+  inner: Edge,
+  outer: Edge,
   y: number,
   colorAt?: (sample: TrackSample, index: number) => Color,
 ) {
@@ -62,8 +103,8 @@ function ribbon(
 
   for (let i = 0; i < rows; i++) {
     const sample = samples[i % samples.length];
-    const a = sample.point.clone().addScaledVector(sample.side, inner);
-    const b = sample.point.clone().addScaledVector(sample.side, outer);
+    const a = sample.point.clone().addScaledVector(sample.side, typeof inner === "number" ? inner : inner(sample, i));
+    const b = sample.point.clone().addScaledVector(sample.side, typeof outer === "number" ? outer : outer(sample, i));
     positions.set([a.x, a.y + y, a.z, b.x, b.y + y, b.z], i * 6);
     uvs.set([0, (i / samples.length) * stretch, 1, (i / samples.length) * stretch], i * 4);
     if (colors && colorAt) {
@@ -112,8 +153,8 @@ function buildTunnel() {
 
   const shell = mergeGeometries([
     strip(from, to, (sample) => [edge(sample, -reach, height), edge(sample, reach, height)]),
-    strip(from, to, (sample) => [edge(sample, -reach, 0), edge(sample, -reach, height)]),
-    strip(from, to, (sample) => [edge(sample, reach, 0), edge(sample, reach, height)]),
+    strip(from, to, (sample) => [edge(sample, -reach, -6), edge(sample, -reach, height)]),
+    strip(from, to, (sample) => [edge(sample, reach, -6), edge(sample, reach, height)]),
   ]);
   const shade = strip(from, to, (sample) => [edge(sample, -reach, 0.04), edge(sample, reach, 0.04)]);
 
@@ -133,16 +174,38 @@ function buildTunnel() {
 function buildWalls() {
   const edge = (sample: TrackSample, offset: number, y: number) =>
     sample.point.clone().addScaledVector(sample.side, offset).setY(sample.point.y + y);
-  const reach = trackHalfWidth + 6;
-  const wall = (offset: number) =>
-    strip(0, 0.9996, (sample) => [edge(sample, offset, 0.05), edge(sample, offset, -9)]);
-  return mergeGeometries([wall(-reach), wall(reach)]);
+  // Deep enough to reach the ground wherever the road runs above it
+  const wall = (direction: number) =>
+    strip(0, 0.9996, (sample) => {
+      const offset = sideReach(direction)[samples.indexOf(sample)] * direction;
+      return [edge(sample, offset, 0.05), edge(sample, offset, -45)];
+    });
+  return mergeGeometries([wall(-1), wall(1)]);
 }
 
-const terrainSize = 3400;
-const terrainSteps = 120;
+type Footprint = [x: number, z: number, reach: number];
 
-function buildTerrain() {
+// A soft dark patch under each building, so it reads as standing on the ground
+function shadeFootprints(positions: BufferAttribute, colors: Float32Array, footprints: Footprint[]) {
+  const rows = terrainSteps + 1;
+  const cell = terrainSize / terrainSteps;
+  for (const [x, z, reach] of footprints) {
+    const radius = reach + 16;
+    const column = Math.round((x + terrainSize / 2) / cell);
+    const row = Math.round((z + terrainSize / 2) / cell);
+    const cells = Math.ceil(radius / cell);
+    for (let r = Math.max(row - cells, 0); r <= Math.min(row + cells, terrainSteps); r++) {
+      for (let c = Math.max(column - cells, 0); c <= Math.min(column + cells, terrainSteps); c++) {
+        const vertex = r * rows + c;
+        const distance = Math.hypot(positions.getX(vertex) - x, positions.getZ(vertex) - z);
+        const shade = 1 - 0.42 * Math.max(1 - Math.max(distance - reach, 0) / 16, 0);
+        for (let channel = 0; channel < 3; channel++) colors[vertex * 3 + channel] *= shade;
+      }
+    }
+  }
+}
+
+function buildTerrain(footprints: Footprint[]) {
   const geometry = new PlaneGeometry(terrainSize, terrainSize, terrainSteps, terrainSteps);
   geometry.rotateX(-Math.PI / 2);
   const positions = geometry.attributes.position as BufferAttribute;
@@ -151,12 +214,13 @@ function buildTerrain() {
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i);
     const z = positions.getZ(i);
-    const y = groundAt(x, z);
+    const y = terrainHeight(x, z);
     positions.setY(i, y);
     const height = Math.min(Math.max((y - 50) / 130, 0), 1);
-    paint.set(height > 0.65 ? "#9b9383" : height > 0.08 ? "#6d7a4e" : "#b5ad9c");
+    paint.set(height > 0.65 ? "#9b9383" : height > 0.08 ? "#6d7a4e" : "#a0967f");
     colors.set([paint.r, paint.g, paint.b], i * 3);
   }
+  shadeFootprints(positions, colors, footprints);
   geometry.setAttribute("color", new BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
   return geometry;
@@ -305,7 +369,6 @@ function StartLine() {
 export function Track({ wet, day, golden }: { wet: boolean; day: boolean; golden: boolean }) {
   const road = useMemo(() => ribbon(-trackHalfWidth, trackHalfWidth, 0), []);
   const tarmac = useMemo(() => tarmacTexture(), []);
-  const terrain = useMemo(() => buildTerrain(), []);
   const walls = useMemo(() => buildWalls(), []);
   const towerMaterial = useMemo(() => {
     const material = new MeshStandardMaterial({
@@ -318,8 +381,8 @@ export function Track({ wet, day, golden }: { wet: boolean; day: boolean; golden
   }, [day, golden]);
   const pavement = useMemo(
     () => [
-      ribbon(-trackHalfWidth - 6, -trackHalfWidth - 1.2, 0.05),
-      ribbon(trackHalfWidth + 1.2, trackHalfWidth + 6, 0.05),
+      ribbon(pavementEdge(-1), -trackHalfWidth - 1.2, 0.05),
+      ribbon(trackHalfWidth + 1.2, pavementEdge(1), 0.05),
     ],
     [],
   );
@@ -363,17 +426,23 @@ export function Track({ wet, day, golden }: { wet: boolean; day: boolean; golden
   const towers = useMemo(() => {
     const bodies = [];
     const caps = [];
+    const placed: Footprint[] = [];
     for (let i = 0; i < 620; i++) {
       const sample = samples[Math.floor(random(i + 1) * samples.length)];
       const offset = (24 + random(i + 500) * 130) * (random(i + 900) > 0.35 ? 1 : -1);
       const position = sample.point.clone().addScaledVector(sample.side, offset);
-      if (inSea(position.x, position.z) || distanceToTrack(position.x, position.z) < 25) continue;
       if (offset > 0 && onPitStraight(sample)) continue;
+      if (offset < 0 && Math.abs(offset) < 52 && samples.indexOf(sample) / samples.length > 0.88) continue;
       if (nearLandmark(position.x, position.z)) continue;
       const width = 9 + random(i + 200) * 14;
       const depth = 9 + random(i + 300) * 14;
+      const reach = Math.hypot(width, depth) / 2;
       const height = 12 + random(i + 400) ** 2 * 80;
-      const base = groundAt(position.x, position.z) - 2;
+      if (distanceToTrack(position.x, position.z) < trackHalfWidth + 8 + reach) continue;
+      if ([-reach, reach].some((dx) => [-reach, reach].some((dz) => inSea(position.x + dx, position.z + dz)))) continue;
+      if (placed.some(([x, z, size]) => Math.hypot(x - position.x, z - position.z) < (size + reach) * 0.9)) continue;
+      placed.push([position.x, position.z, reach]);
+      const base = seatAt(position.x, position.z, reach) - 1.5;
       bodies.push({
         position: position.clone().setY(base + height / 2),
         scale: new Vector3(width, height, depth),
@@ -383,8 +452,10 @@ export function Track({ wet, day, golden }: { wet: boolean; day: boolean; golden
         scale: new Vector3(width + 0.8, 0.5, depth + 0.8),
       });
     }
-    return { bodies: buildMatrices(bodies), caps: buildMatrices(caps) };
+    return { bodies: buildMatrices(bodies), caps: buildMatrices(caps), placed };
   }, []);
+
+  const terrain = useMemo(() => buildTerrain(towers.placed), [towers]);
 
   const palms = useMemo(() => {
     const items = [];

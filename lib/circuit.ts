@@ -51,28 +51,101 @@ export function distanceToTrack(x: number, z: number) {
   return Math.min(...coarseTrack.map(({ point }) => Math.hypot(point.x - x, point.z - z)));
 }
 
-function nearestTrack(x: number, z: number) {
-  let nearest = coarseTrack[0].point;
-  let best = Infinity;
-  for (let i = 0; i < coarseTrack.length; i += 2) {
+const blendStep = 3;
+const roadClearance = 1.2;
+const roadShoulder = 38;
+
+// Height of the land before the mountains: a smooth blend of the road levels around it,
+// so two roads at different heights get a slope between them and not a step
+function townHeight(x: number, z: number) {
+  let total = 0;
+  let weights = 0;
+  let nearest = Infinity;
+  let lowestY = Infinity;
+  for (let i = 0; i < coarseTrack.length; i += blendStep) {
     const { point } = coarseTrack[i];
     const distance = (point.x - x) ** 2 + (point.z - z) ** 2;
-    if (distance < best) {
-      best = distance;
-      nearest = point;
-    }
+    const weight = 1 / (distance + 100) ** 2;
+    total += point.y * weight;
+    weights += weight;
+    nearest = Math.min(nearest, distance);
+    if (distance < roadShoulder ** 2) lowestY = Math.min(lowestY, point.y);
   }
-  return { point: nearest, distance: Math.sqrt(best) };
+  return { height: total / weights, lowestY, distance: Math.sqrt(nearest) };
 }
 
-// Ground follows the road, then climbs into the mountains behind the town
+// Ground stays just under the road, then climbs into the mountains behind the town
 export function groundAt(x: number, z: number) {
   if (inSea(x, z)) return -3;
-  const { point, distance } = nearestTrack(x, z);
+  const { height, lowestY, distance } = townHeight(x, z);
   const inland = Math.max(0, (z < 200 ? -z - 150 : 0) + (x < -300 ? -x - 300 : 0)) / 700;
   const rise = Math.min(inland, 1);
-  const shoulder = Math.min(Math.max(distance - 30, 0) / 90, 1);
-  return point.y - 8 + shoulder * 9 + rise * rise * (3 - 2 * rise) * 190;
+  const mountain = rise * rise * (3 - 2 * rise) * 190 * smooth((distance - 70) / 260);
+  const ground = height - roadClearance + smooth(distance / 200) * 3 + mountain;
+  // Where roads pass at different levels, the ground sits below the lowest and the upper one gets a retaining wall
+  return Math.min(ground, lowestY - roadClearance);
+}
+
+function smooth(value: number) {
+  const t = Math.min(Math.max(value, 0), 1);
+  return t * t * (3 - 2 * t);
+}
+
+// How far the pavement can spread at this point of the lap before it reaches another stretch of road
+export function clearReach(x: number, z: number, sideX: number, sideZ: number, lap: number, reach: number, least: number) {
+  for (let edge = reach; edge > least; edge -= 0.8) {
+    const edgeX = x + sideX * edge;
+    const edgeZ = z + sideZ * edge;
+    const blocked = coarseTrack.some(({ point }, i) => {
+      const apart = Math.abs(i / coarseTrack.length - lap);
+      if (Math.min(apart, 1 - apart) < 0.012) return false;
+      return Math.hypot(point.x - edgeX, point.z - edgeZ) < trackHalfWidth + 1;
+    });
+    if (!blocked) return edge;
+  }
+  return least;
+}
+
+export const terrainSize = 3400;
+export const terrainSteps = 180;
+const terrainCell = terrainSize / terrainSteps;
+let terrainGrid: Float32Array | null = null;
+
+function readTerrain() {
+  if (terrainGrid) return terrainGrid;
+  const rows = terrainSteps + 1;
+  terrainGrid = new Float32Array(rows * rows);
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < rows; column++) {
+      terrainGrid[row * rows + column] = groundAt(column * terrainCell - terrainSize / 2, row * terrainCell - terrainSize / 2);
+    }
+  }
+  return terrainGrid;
+}
+
+// The height of the terrain mesh itself, which is what buildings have to stand on
+export function terrainHeight(x: number, z: number) {
+  const grid = readTerrain();
+  const rows = terrainSteps + 1;
+  const column = Math.min(Math.max((x + terrainSize / 2) / terrainCell, 0), terrainSteps - 0.001);
+  const row = Math.min(Math.max((z + terrainSize / 2) / terrainCell, 0), terrainSteps - 0.001);
+  const left = Math.floor(column);
+  const top = Math.floor(row);
+  const across = column - left;
+  const down = row - top;
+  const at = (r: number, c: number) => grid[r * rows + c];
+  const near = at(top, left) * (1 - across) + at(top, left + 1) * across;
+  const far = at(top + 1, left) * (1 - across) + at(top + 1, left + 1) * across;
+  return near * (1 - down) + far * down;
+}
+
+// The lowest ground under a footprint, so nothing built on it hangs over a slope
+export function seatAt(x: number, z: number, reach: number) {
+  let lowest = Infinity;
+  for (const dx of [-reach, 0, reach]) {
+    for (const dz of [-reach, 0, reach]) lowest = Math.min(lowest, terrainHeight(x + dx, z + dz));
+  }
+  return lowest;
 }
 
 // The coast follows the left edge of the track, then runs out to open water

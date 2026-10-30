@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, type Mesh, Vector3 } from "three";
 import { circuit, circuitLength, lapPosition } from "@/lib/circuit";
-import { telemetry } from "@/lib/telemetry";
+import { driveControl, telemetry } from "@/lib/telemetry";
 
 const rows = 40;
 const up = new Vector3(0, 1, 0);
@@ -48,7 +48,8 @@ export function Trails() {
     const u = lapPosition(telemetry.progress);
     const length = 3 + telemetry.speed * 70;
     const glow = Math.min(telemetry.speed * 2.2, 1);
-    mesh.current.visible = glow > 0.02;
+    // The chase camera sits right behind these, so they'd cover the road in Drive mode
+    mesh.current.visible = glow > 0.02 && !driveControl.active;
 
     let vertex = 0;
     streaks.forEach(({ offset, height, width, color }) => {

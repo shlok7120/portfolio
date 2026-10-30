@@ -195,6 +195,59 @@ html:not([data-golden]) .only-golden {
   }
 }
 
+html[data-drive] main,
+html[data-drive] header a {
+  visibility: hidden;
+}
+
+.drive-count {
+  animation: drive-count 0.8s ease-out both;
+}
+
+@keyframes drive-count {
+  from {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+.drive-brake {
+  color: #fff;
+  opacity: 0;
+  text-shadow: 0 0 18px #e10600, 0 2px 0 #000;
+}
+
+.drive-drs {
+  color: #fff;
+  opacity: 0;
+  text-shadow: 0 1px 3px #000;
+}
+
+.drive-brake.is-on,
+.drive-drs.is-on {
+  opacity: 1;
+}
+
+.finale-text {
+  animation: finale-text 7s ease both;
+  text-shadow: 0 2px 24px rgb(0 0 0 / 0.6);
+}
+
+@keyframes finale-text {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  8%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .radio-in {
   animation: rise-in 0.35s ease-out both;
 }

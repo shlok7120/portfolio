@@ -3,6 +3,9 @@ import { progressAtCentre, scrollProgress } from "./scroll";
 const finishLine = 0.995;
 const minimumLapMs = 6000;
 const bestLapKey = "sp75-best-lap";
+const driveBestKey = "sp75-best-drive";
+const boostKph = 280;
+const hardBraking = 0.9;
 const reactionKey = "sp75-reaction";
 const gearTops = [60, 100, 140, 180, 220, 260, 300, 345];
 
@@ -16,6 +19,14 @@ export const telemetry = {
   sector: 0,
   splits: [0, 0, 0],
   moving: false,
+  boost: 0,
+  scrape: 0,
+};
+
+// Drive mode takes over from the scrollbar while it's active
+export const driveControl = {
+  active: false,
+  step: null as ((seconds: number) => void) | null,
 };
 
 export type LapResult = { ms: number; best: number; isBest: boolean; deleted: boolean };
@@ -84,9 +95,10 @@ function finishLap() {
   lapRunning = false;
   const ms = telemetry.lapMs;
   const deleted = ms < minimumLapMs;
-  const previous = readStored(() => localStorage, bestLapKey);
+  const key = driveControl.active ? driveBestKey : bestLapKey;
+  const previous = readStored(() => localStorage, key);
   const isBest = !deleted && (previous === null || ms < previous);
-  if (isBest) store(() => localStorage, bestLapKey, ms);
+  if (isBest) store(() => localStorage, key, ms);
   setRace({ lap: { ms, best: isBest ? ms : (previous ?? ms), isBest, deleted } });
 }
 
@@ -131,20 +143,35 @@ let users = 0;
 let frame = 0;
 let lastTime = 0;
 
-function tick(time: number) {
-  const elapsed = Math.min(time - lastTime, 50);
-  lastTime = time;
-  const seconds = elapsed / 1000;
-
+function followScroll(seconds: number) {
   const target = scrollProgress();
   const gap = target - telemetry.progress;
   telemetry.progress = Math.abs(gap) < 0.00002 ? target : telemetry.progress + gap * (1 - Math.exp(-seconds * 5));
 
   const speedTarget = Math.min(Math.abs(gap) * 45, 1);
+  const lastSpeed = telemetry.speed;
   telemetry.speed += (speedTarget - telemetry.speed) * (1 - Math.exp(-seconds * 4));
   if (telemetry.speed < 0.001) telemetry.speed = 0;
 
-  telemetry.moving = gap !== 0 || telemetry.speed > 0;
+  telemetry.boost += ((telemetry.kph >= boostKph ? 1 : 0) - telemetry.boost) * (1 - Math.exp(-seconds * 6));
+  const braking = seconds > 0 && (lastSpeed - telemetry.speed) / seconds > hardBraking && telemetry.kph > 120;
+  telemetry.scrape = braking ? 1 : telemetry.scrape * Math.exp(-seconds * 6);
+
+  telemetry.moving = gap !== 0 || telemetry.speed > 0 || telemetry.boost > 0.01 || telemetry.scrape > 0.01;
+}
+
+function tick(time: number) {
+  const elapsed = Math.min(time - lastTime, 50);
+  lastTime = time;
+  const seconds = elapsed / 1000;
+
+  if (driveControl.active && driveControl.step) {
+    driveControl.step(seconds);
+    telemetry.moving = true;
+  } else {
+    followScroll(seconds);
+  }
+
   if (telemetry.moving) {
     updateDrivetrain();
     updateLap(elapsed);

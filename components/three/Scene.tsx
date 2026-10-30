@@ -13,10 +13,12 @@ import {
 } from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { circuit, circuitLength, lapPosition } from "@/lib/circuit";
+import { getDriveCues } from "@/lib/drive";
 import { getModes, getServerModes, subscribeModes } from "@/lib/modes";
 import { progressAtCentre } from "@/lib/scroll";
-import { getRace, subscribeFrames, subscribeRace, telemetry } from "@/lib/telemetry";
+import { driveControl, getRace, subscribeFrames, subscribeRace, telemetry } from "@/lib/telemetry";
 import { Car, type CarHandle } from "./Car";
+import { Sparks } from "./Sparks";
 import { Cinema } from "./Cinema";
 import { type Cue, directCamera, type Pose } from "./director";
 import { Landmarks } from "./Landmarks";
@@ -185,7 +187,8 @@ function Rig({ cues }: { cues: Cue[] }) {
   useFrame((frame, rawDelta) => {
     const camera = frame.camera as PerspectiveCamera;
     const delta = Math.min(rawDelta, 0.05);
-    const { progress, speed } = telemetry;
+    const { boost, progress, scrape, speed } = telemetry;
+    const driving = driveControl.active;
     const { day, wet, golden } = getModes();
     frame.scene.environmentIntensity = pickAtmosphere(day, wet, golden).reflections;
     sunVector.set(...(golden ? lowSun : highSun)).normalize();
@@ -239,16 +242,21 @@ function Rig({ cues }: { cues: Cue[] }) {
     // On the grid the camera drifts slowly and leans towards the pointer
     pointer.current.eased += (pointer.current.x - pointer.current.eased) * (1 - Math.exp(-delta * 3));
     pose.u = u;
-    pose.orbit = Math.sin(frame.clock.elapsedTime * 0.14) * 0.12 + pointer.current.eased * 0.34;
-    directCamera(cues, progress, pose, shot);
+    pose.orbit = driving ? 0 : Math.sin(frame.clock.elapsedTime * 0.14) * 0.12 + pointer.current.eased * 0.34;
+    directCamera(driving ? getDriveCues() : cues, progress, pose, shot);
     camera.position.copy(shot.position);
     camera.lookAt(shot.target);
 
+    // The whole car shakes under DRS and when the tyres lock
+    const shake = boost * 0.035 + scrape * 0.05;
+    camera.position.x += (Math.random() - 0.5) * shake;
+    camera.position.y += (Math.random() - 0.5) * shake;
+
     // Push the hero car clear of the headline, then recentre for the rest of the lap
-    const hero = 1 - MathUtils.smoothstep(progress, 0, 0.05);
+    const hero = driving ? 0 : 1 - MathUtils.smoothstep(progress, 0, 0.05);
     const { width, height } = frame.size;
     const shiftX = width / height > 1.25 ? -0.13 : 0;
-    camera.fov = shot.fov + speed * 14;
+    camera.fov = shot.fov + speed * 14 + boost * 9;
     camera.setViewOffset(width, height, shiftX * hero * width, -0.2 * hero * height, width, height);
 
     if (glow.current) {
@@ -340,6 +348,7 @@ export default function Scene() {
       <Landmarks day={bright} glow={!day} />
       <Rig cues={lap.cues} />
       <Trails />
+      <Sparks />
       {wet && <Rain />}
       <Cinema />
     </Canvas>

@@ -33,6 +33,9 @@ contact form opens the visitor's email app.
 ## Modes
 
 - **Golden hour, day and night:** starts in golden hour until the visitor picks another in the nav.
+- **Drive mode:** "Take the wheel" (or the D key) on desktop turns the lap into a game. Use the arrow
+  keys to drive, Shift for DRS on the straights and C to change camera. Going too fast into a corner
+  locks the tyres and adds a second to the lap.
 - **Team radio:** messages from the pit wall pop up during the lap and link to the projects.
 - **Pit garage:** the Setup section opens a 3D view of the car where each part shows a group of skills.
 - **Test drive:** four project pages have a demo. The Fleet rules and TimeWeave solvers really run in

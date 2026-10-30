@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DriveButton } from "@/components/hud/DriveButton";
 import { profile } from "@/content/profile";
 
 export function Grid() {
@@ -35,7 +36,8 @@ export function Grid() {
           <div className="glass px-5 py-4">
             <p className="text-base leading-relaxed sm:text-lg">{profile.role}</p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/#results" className="btn-race">
+              <DriveButton />
+              <Link href="/#results" className="btn-race btn-ghost">
                 View race results
               </Link>
               <Link href="/#pit-lane" className="btn-race btn-ghost">

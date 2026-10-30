@@ -63,7 +63,7 @@ export function Trails() {
           positions.setXYZ(
             vertex,
             point.x + side.x * (offset + edge * width),
-            height,
+            point.y + height,
             point.z + side.z * (offset + edge * width),
           );
           colors.setXYZ(vertex, color.r * fade, color.g * fade, color.b * fade);

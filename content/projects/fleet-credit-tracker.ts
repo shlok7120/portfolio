@@ -101,6 +101,7 @@ export const fleetCreditTracker: Project = {
     "Detection figures come from seeded data with planted anomalies, so they show that the method works and aren't a field result.",
     "Odd-hours detection stays below 100% on purpose. Reaching 100% would mean flagging every late-night fill.",
   ],
+  demo: "fleet",
   stack: ["React 19", "Vite", "Tailwind CSS", "Node.js", "Express", "FastAPI", "scikit-learn", "statsmodels", "PostgreSQL", "Vercel"],
   links: [
     { label: "Live demo", href: "https://fleet-credit-tracker.vercel.app" },

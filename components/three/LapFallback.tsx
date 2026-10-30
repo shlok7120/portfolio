@@ -10,7 +10,7 @@ export function LapFallback() {
   const path = useRef<SVGPathElement>(null);
   const trail = useRef<SVGPathElement>(null);
   const dot = useRef<SVGCircleElement>(null);
-  const { day } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
+  const { day, golden } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
 
   useEffect(() => {
     function update() {
@@ -35,7 +35,7 @@ export function LapFallback() {
   return (
     <>
     <Image
-      src={day ? "/lap/poster-day.webp" : "/lap/poster-night.webp"}
+      src={`/lap/poster-${day ? "day" : golden ? "golden" : "night"}.webp`}
       alt=""
       fill
       sizes="100vw"

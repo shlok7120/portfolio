@@ -19,14 +19,16 @@ import { getRace, subscribeFrames, subscribeRace, telemetry } from "@/lib/teleme
 import { Car, type CarHandle } from "./Car";
 import { Cinema } from "./Cinema";
 import { type Cue, directCamera, type Pose } from "./director";
+import { Landmarks } from "./Landmarks";
 import { Rain } from "./Rain";
 import { Sky } from "./Sky";
 import { Track } from "./Track";
 import { type GantryInfo, Trackside } from "./Trackside";
 import { Trails } from "./Trails";
 
-const sunDirection: [number, number, number] = [-110, 170, 150];
-const sunVector = new Vector3(...sunDirection).normalize();
+const highSun: [number, number, number] = [-110, 170, 150];
+const lowSun: [number, number, number] = [-250, 62, 120];
+const sunVector = new Vector3();
 
 const atmospheres = {
   dayDry: {
@@ -50,6 +52,17 @@ const atmospheres = {
     hemisphere: ["#d6dee7", "#5c6352", 1.8],
     sun: ["#dfe6ee", 1.1],
     reflections: 0.7,
+  },
+  goldenDry: {
+    top: "#4a63a8",
+    horizon: "#ffb777",
+    fog: [240, 1300],
+    sunStrength: 1.5,
+    clouds: 0.75,
+    stars: 0,
+    hemisphere: ["#ffdcb8", "#6a4c3a", 1.05],
+    sun: ["#ffb26a", 4],
+    reflections: 0.75,
   },
   nightDry: {
     top: "#03050a",
@@ -75,8 +88,9 @@ const atmospheres = {
   },
 } as const;
 
-function pickAtmosphere(day: boolean, wet: boolean) {
-  if (day) return wet ? atmospheres.dayWet : atmospheres.dayDry;
+function pickAtmosphere(day: boolean, wet: boolean, golden: boolean) {
+  if (golden && !wet) return atmospheres.goldenDry;
+  if (day || golden) return wet ? atmospheres.dayWet : atmospheres.dayDry;
   return wet ? atmospheres.nightWet : atmospheres.nightDry;
 }
 
@@ -172,8 +186,9 @@ function Rig({ cues }: { cues: Cue[] }) {
     const camera = frame.camera as PerspectiveCamera;
     const delta = Math.min(rawDelta, 0.05);
     const { progress, speed } = telemetry;
-    const { day, wet } = getModes();
-    frame.scene.environmentIntensity = pickAtmosphere(day, wet).reflections;
+    const { day, wet, golden } = getModes();
+    frame.scene.environmentIntensity = pickAtmosphere(day, wet, golden).reflections;
+    sunVector.set(...(golden ? lowSun : highSun)).normalize();
 
     // Slow machines trade sharpness for a steadier frame rate
     if (telemetry.moving && rawDelta < 0.25) {
@@ -238,7 +253,7 @@ function Rig({ cues }: { cues: Cue[] }) {
 
     if (glow.current) {
       glow.current.position.copy(point).addScaledVector(up, 2.4);
-      glow.current.intensity = day ? 0 : 7;
+      glow.current.intensity = day || golden ? 0 : 7;
     }
     if (sun.current) {
       sun.current.position.copy(point).addScaledVector(sunVector, 60);
@@ -249,8 +264,8 @@ function Rig({ cues }: { cues: Cue[] }) {
     if (progress < heroRange || (getRace().started && build.current < 1)) frame.invalidate();
   });
 
-  const { day, wet } = getModes();
-  const atmosphere = pickAtmosphere(day, wet);
+  const { day, wet, golden } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
+  const atmosphere = pickAtmosphere(day, wet, golden);
 
   return (
     <>
@@ -277,8 +292,9 @@ function Rig({ cues }: { cues: Cue[] }) {
 }
 
 export default function Scene() {
-  const { day, wet } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
-  const atmosphere = pickAtmosphere(day, wet);
+  const { day, wet, golden } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
+  const atmosphere = pickAtmosphere(day, wet, golden);
+  const bright = day || golden;
   const lap = useMemo(() => readLap(), []);
 
   return (
@@ -287,7 +303,7 @@ export default function Scene() {
       shadows
       frameloop="demand"
       dpr={[1, 2]}
-      camera={{ fov: 30, near: 0.1, far: 1500, position: [0, 3, 10] }}
+      camera={{ fov: 30, near: 0.1, far: 2600, position: [0, 3, 10] }}
       gl={{
         alpha: false,
         antialias: false,
@@ -310,7 +326,7 @@ export default function Scene() {
       <Sky
         top={atmosphere.top}
         horizon={atmosphere.horizon}
-        sun={sunDirection}
+        sun={golden ? lowSun : highSun}
         sunStrength={atmosphere.sunStrength}
         clouds={atmosphere.clouds}
         stars={atmosphere.stars}
@@ -319,8 +335,9 @@ export default function Scene() {
         key={`${atmosphere.horizon}-sky`}
         args={[atmosphere.hemisphere[0], atmosphere.hemisphere[1], atmosphere.hemisphere[2]]}
       />
-      <Track wet={wet} day={day} />
-      <Trackside gantries={lap.gantries} day={day} />
+      <Track wet={wet} day={bright} golden={golden} />
+      <Trackside gantries={lap.gantries} day={bright} />
+      <Landmarks day={bright} glow={!day} />
       <Rig cues={lap.cues} />
       <Trails />
       {wet && <Rain />}

@@ -75,7 +75,8 @@ export function Cinema() {
   useFrame((_, delta) => {
     const current = rig.current;
     if (!current) return;
-    current.bloom.intensity = getModes().day ? 0.12 : 0.8;
+    const { day, golden } = getModes();
+    current.bloom.intensity = day ? 0.12 : golden ? 0.4 : 0.8;
     current.blur.uniforms.get("strength")!.value = telemetry.speed ** 2 * 0.09;
     current.composer.render(delta);
   }, 1);

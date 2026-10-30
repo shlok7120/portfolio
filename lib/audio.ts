@@ -68,7 +68,7 @@ function setRpm(rpm: number, smoothing: number, at = engine?.context.currentTime
   engine.turboGain.gain.setTargetAtTime(0.004 + openness * 0.03, at, smoothing);
 }
 
-function radioBeep(frequency: number, start: number, length: number) {
+function chirp(frequency: number, start: number, length: number) {
   if (!engine) return;
   const { context } = engine;
   const oscillator = context.createOscillator();
@@ -79,6 +79,12 @@ function radioBeep(frequency: number, start: number, length: number) {
   oscillator.connect(gain).connect(context.destination);
   oscillator.start(context.currentTime + start);
   oscillator.stop(context.currentTime + start + length);
+}
+
+// Two short tones, only when the visitor has switched sound on
+export function radioBeep() {
+  chirp(1100, 0, 0.07);
+  chirp(1100, 0.12, 0.07);
 }
 
 // An upshift cuts ignition for a moment, then the revs land lower
@@ -105,8 +111,7 @@ function updateEngine() {
 
   if (telemetry.sector !== lastSector) {
     lastSector = telemetry.sector;
-    radioBeep(1100, 0, 0.07);
-    radioBeep(1100, 0.12, 0.07);
+    radioBeep();
   }
 }
 

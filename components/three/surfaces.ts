@@ -29,20 +29,6 @@ export function tarmacTexture() {
   });
 }
 
-export function grassTexture() {
-  const texture = noisyTexture(256, 256, (context) => {
-    const image = context.createImageData(256, 256);
-    for (let i = 0; i < image.data.length; i += 4) {
-      const y = Math.floor(i / 4 / 256);
-      const mown = 1 + (y % 2) * 0;
-      const value = (200 + Math.random() * 55) * mown;
-      image.data.set([value, value, value, 255], i);
-    }
-    context.putImageData(image, 0, 0);
-  });
-  texture.repeat.set(170, 170);
-  return texture;
-}
 
 export function crowdTexture() {
   const texture = noisyTexture(512, 64, (context) => {

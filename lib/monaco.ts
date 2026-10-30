@@ -31,6 +31,25 @@ export const monacoPoints: [number, number][] = [
   [-317.6, -281.6], [-323.2, -241.9], [-327.6, -190.4],
 ];
 
+// Road height in metres around the lap: up from the harbour to the Casino, then back
+// down through Mirabeau and the hairpin to the sea
+export const heightProfile: { at: number; height: number }[] = [
+  { at: 0, height: 6 },
+  { at: 0.04, height: 6 },
+  { at: 0.09, height: 13 },
+  { at: 0.2, height: 37 },
+  { at: 0.27, height: 42 },
+  { at: 0.34, height: 31 },
+  { at: 0.38, height: 25 },
+  { at: 0.44, height: 10 },
+  { at: 0.5, height: 7 },
+  { at: 0.58, height: 5 },
+  { at: 0.7, height: 5 },
+  { at: 0.83, height: 5 },
+  { at: 0.94, height: 6 },
+  { at: 1.001, height: 6 },
+];
+
 export const seaStretch = { from: 0.48, to: 0.87 };
 export const tunnelStretch = { from: 0.51, to: 0.575 };
 export const harbourStretch = { from: 0.67, to: 0.85 };

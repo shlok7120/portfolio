@@ -23,10 +23,10 @@ const mono = DM_Mono({
   weight: ["400", "500"],
 });
 
-// Runs before first paint, so the day theme and Safety Car never flash, and returning
-// visitors and deep links never see the start screen. Day follows the visitor's clock
+// Runs before first paint, so the sky theme and Safety Car never flash, and returning
+// visitors and deep links never see the start screen. The sky follows the visitor's clock
 // until they choose for themselves.
-const earlyModesScript = `(function(){var d=document.documentElement;try{var sun=localStorage.getItem("sp75-day"),hour=new Date().getHours();if(sun==="1"||(sun===null&&hour>=6&&hour<18))d.dataset.day="1";var calm=matchMedia("(prefers-reduced-motion: reduce)").matches,saved=localStorage.getItem("sp75-safety");if(saved==="1"||(saved===null&&calm))d.dataset.safety="1";if(d.dataset.safety||calm||sessionStorage.getItem("sp75-lights")||location.hash)d.dataset.lights="done"}catch(e){d.dataset.lights="done"}})()`;
+const earlyModesScript = `(function(){var d=document.documentElement;try{var sky=localStorage.getItem("sp75-sky"),hour=new Date().getHours();sky=sky||(hour>=7&&hour<17?"day":hour>=17&&hour<19?"golden":"night");if(sky==="day")d.dataset.day="1";if(sky==="golden")d.dataset.golden="1";var calm=matchMedia("(prefers-reduced-motion: reduce)").matches,saved=localStorage.getItem("sp75-safety");if(saved==="1"||(saved===null&&calm))d.dataset.safety="1";if(d.dataset.safety||calm||sessionStorage.getItem("sp75-lights")||location.hash)d.dataset.lights="done"}catch(e){d.dataset.lights="done"}})()`;
 
 export const metadata: Metadata = {
   title: {

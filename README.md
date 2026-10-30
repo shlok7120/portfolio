@@ -1,6 +1,6 @@
 # One Lap
 
-Shlok Patel's F1-themed portfolio. The page is one flying lap of a fictional circuit:
+Shlok Patel's F1-themed portfolio. The page is one flying lap of the Monaco street circuit:
 scrolling drives a 3D car while a live HUD shows speed, gear, revs and lap time.
 
 Built with Next.js, TypeScript, Tailwind CSS, React Three Fiber and Lenis. The car and track
@@ -32,7 +32,11 @@ contact form opens the visitor's email app.
 
 ## Modes
 
-- **Day and night:** follows the visitor's clock (day from 6 am to 6 pm) until they pick one in the nav.
+- **Day, golden hour and night:** follows the visitor's clock until they pick one in the nav.
+- **Team radio:** messages from the pit wall pop up during the lap and link to the projects.
+- **Pit garage:** the Setup section opens a 3D view of the car where each part shows a group of skills.
+- **Test drive:** four project pages have a demo. The Fleet rules and TimeWeave solvers really run in
+  the browser in simplified form, and the SatQuery and Case 43 demos are labelled replays.
 - **Safety Car:** a plain version with no animation. It's on by default for people who turn
   off motion in their system settings.
 - **Light lap:** phones and touch devices get a 2D track instead of the 3D scene.

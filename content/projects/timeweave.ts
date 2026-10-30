@@ -99,6 +99,7 @@ export const timeweave: Project = {
     "The genetic algorithm gives the best soft penalty on small instances but fails to reach hard feasibility on the largest.",
     "Min-conflicts is the fastest route to a good timetable, but it can never prove that no timetable exists.",
   ],
+  demo: "timeweave",
   stack: ["Python", "Flask", "Constraint satisfaction", "Local search", "ID3", "pytest"],
   links: [
     { label: "Live demo", href: "https://timeweave-one.vercel.app" },

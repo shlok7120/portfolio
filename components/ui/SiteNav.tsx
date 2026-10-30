@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, useScroll } from "motion/react";
 import { useSyncExternalStore } from "react";
 import { LapControls } from "@/components/hud/LapControls";
-import { getModes, getServerModes, setDay, setSafety, subscribeModes } from "@/lib/modes";
+import { getModes, getServerModes, setSafety, setSky, subscribeModes } from "@/lib/modes";
 import { profile } from "@/content/profile";
 
 const stages = [
@@ -17,7 +17,10 @@ const stages = [
 
 export function SiteNav() {
   const { scrollYProgress } = useScroll();
-  const { day, safety } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
+  const { day, golden, safety } = useSyncExternalStore(subscribeModes, getModes, getServerModes);
+
+  const skyName = day ? "Day" : golden ? "Golden" : "Night";
+  const nextSky = day ? "golden" : golden ? "night" : "day";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-carbon/85 backdrop-blur">
@@ -44,11 +47,11 @@ export function SiteNav() {
           <LapControls />
           <button
             type="button"
-            aria-label={day ? "Day mode, switch to night" : "Night mode, switch to day"}
-            onClick={() => setDay(!day)}
+            aria-label={`${skyName} mode, switch to ${nextSky}`}
+            onClick={() => setSky(nextSky)}
             className="border border-line px-2.5 py-1 font-mono text-xs text-ink hover:border-lime hover:text-lime"
           >
-            {day ? "Day" : "Night"}
+            {skyName}
           </button>
           <button
             type="button"

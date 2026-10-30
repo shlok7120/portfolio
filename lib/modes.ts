@@ -1,10 +1,11 @@
 const safetyKey = "sp75-safety";
 const wetKey = "sp75-wet";
-const dayKey = "sp75-day";
+const skyKey = "sp75-sky";
 
-export type Modes = { safety: boolean; wet: boolean; day: boolean };
+export type Sky = "day" | "golden" | "night";
+export type Modes = { safety: boolean; wet: boolean; day: boolean; golden: boolean };
 
-const serverModes: Modes = { safety: false, wet: false, day: false };
+const serverModes: Modes = { safety: false, wet: false, day: false, golden: false };
 const listeners = new Set<() => void>();
 let modes: Modes | null = null;
 
@@ -26,8 +27,8 @@ function readWet() {
 
 export function getModes() {
   // The layout's inline script has already set these attributes before first paint
-  const { safety, day } = document.documentElement.dataset;
-  modes ??= { safety: safety === "1", wet: readWet(), day: day === "1" };
+  const { safety, day, golden } = document.documentElement.dataset;
+  modes ??= { safety: safety === "1", wet: readWet(), day: day === "1", golden: golden === "1" };
   return modes;
 }
 
@@ -52,11 +53,18 @@ export function setSafety(safety: boolean) {
   update({ safety });
 }
 
-export function setDay(day: boolean) {
-  document.documentElement.toggleAttribute("data-day", day);
-  if (day) document.documentElement.dataset.day = "1";
-  remember(dayKey, day);
-  update({ day });
+export function setSky(sky: Sky) {
+  const root = document.documentElement;
+  root.toggleAttribute("data-day", sky === "day");
+  root.toggleAttribute("data-golden", sky === "golden");
+  if (sky === "day") root.dataset.day = "1";
+  if (sky === "golden") root.dataset.golden = "1";
+  try {
+    localStorage.setItem(skyKey, sky);
+  } catch {
+    // The choice just lasts for this page view
+  }
+  update({ day: sky === "day", golden: sky === "golden" });
 }
 
 export function setWet(wet: boolean) {

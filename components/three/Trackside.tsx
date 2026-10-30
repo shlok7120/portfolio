@@ -114,7 +114,7 @@ function Gantry({ progress, title, label, day }: GantryInfo & { day: boolean }) 
 
 function Billboard({ u, offset, title, stat, day }: { u: number; offset: number; title: string; stat: string; day: boolean }) {
   const { point, side, yaw } = along(u);
-  const position = point.clone().addScaledVector(side, offset).setY(3.6);
+  const position = point.clone().addScaledVector(side, offset).setY(point.y + 3.6);
   const facing = yaw + (offset > 0 ? -Math.PI / 2 : Math.PI / 2) + (offset > 0 ? 0.45 : -0.45);
   const texture = useMemo(
     () =>
@@ -200,7 +200,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       for (const direction of [1, -1]) {
         if (direction < 0 && (u < startGap || u > 1 - startGap)) continue;
         items.push({
-          position: point.clone().addScaledVector(side, direction * (trackHalfWidth + 1.5)).setY(0.55),
+          position: point.clone().addScaledVector(side, direction * (trackHalfWidth + 1.5)).setY(point.y + 0.55),
           scale: new Vector3(0.35, 1.1, 5.1),
           yaw,
           color: palette[Math.floor(i / 2) % 2 === 0 ? 0 : day ? 1 : 0],
@@ -218,7 +218,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       for (const direction of [1, -1]) {
         if (direction < 0 && (i / count < 0.03 || i / count > 0.97)) continue;
         items.push({
-          position: point.clone().addScaledVector(side, direction * (trackHalfWidth + 1.8)).setY(2.1),
+          position: point.clone().addScaledVector(side, direction * (trackHalfWidth + 1.8)).setY(point.y + 2.1),
           scale: new Vector3(1, 1, 1),
         });
       }
@@ -233,9 +233,8 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       const { point, side, yaw } = along(i / 44);
       const direction = i % 2 ? 1 : -1;
       const base = point.clone().addScaledVector(side, direction * (trackHalfWidth + 7));
-      if (inSea(base.x, base.z)) continue;
-      poles.push({ position: base.clone().setY(13), scale: new Vector3(1, 1, 1) });
-      lamps.push({ position: base.clone().addScaledVector(side, -direction).setY(26), scale: new Vector3(1, 1, 1), yaw });
+            poles.push({ position: base.clone().setY(point.y + 13), scale: new Vector3(1, 1, 1) });
+      lamps.push({ position: base.clone().addScaledVector(side, -direction).setY(point.y + 26), scale: new Vector3(1, 1, 1), yaw });
     }
     return { poles, lamps };
   }, []);
@@ -249,13 +248,13 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       const { point, side, yaw } = along(0.9 + (bay / bays) * span);
       for (let tier = 0; tier < 7; tier++) {
         tiers.push({
-          position: point.clone().addScaledVector(side, -(trackHalfWidth + 9 + tier * 2)).setY(1.1 + tier * 1.5),
+          position: point.clone().addScaledVector(side, -(trackHalfWidth + 9 + tier * 2)).setY(point.y + 1.1 + tier * 1.5),
           scale: new Vector3(2, 1.5, 21),
           yaw,
         });
       }
       roofs.push({
-        position: point.clone().addScaledVector(side, -(trackHalfWidth + 15)).setY(14.5),
+        position: point.clone().addScaledVector(side, -(trackHalfWidth + 15)).setY(point.y + 14.5),
         scale: new Vector3(18, 0.4, 21),
         yaw,
       });
@@ -299,7 +298,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       </Instances>
       <Instances items={floodlights.lamps}>
         <boxGeometry args={[3.8, 1, 0.5]} />
-        <meshBasicMaterial color={day ? [0.75, 0.78, 0.82] : [9, 8.6, 7.4]} toneMapped={false} />
+        <meshBasicMaterial color={day ? "#d4d8dd" : "#fff4dc"} toneMapped={false} />
       </Instances>
 
       <Instances items={stand.tiers}>
@@ -311,7 +310,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
         <meshStandardMaterial color={day ? "#dfe4ea" : "#1a1d22"} metalness={0.3} roughness={0.5} />
       </Instances>
 
-      <group position={pits.point.clone().addScaledVector(pits.side, trackHalfWidth + 14).setY(6)} rotation={[0, pits.yaw, 0]}>
+      <group position={pits.point.clone().addScaledVector(pits.side, trackHalfWidth + 14).setY(pits.point.y + 6)} rotation={[0, pits.yaw, 0]}>
         <mesh>
           <boxGeometry args={[14, 12, 200]} />
           <meshStandardMaterial color={day ? "#e4e8ed" : "#14171c"} metalness={0.25} roughness={0.35} />
@@ -327,7 +326,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       </group>
 
       <mesh
-        position={monument.point.clone().addScaledVector(monument.side, trackHalfWidth + 12.4).setY(5.1)}
+        position={monument.point.clone().addScaledVector(monument.side, trackHalfWidth + 12.4).setY(monument.point.y + 5.1)}
         rotation={[0, monument.yaw + Math.PI / 2, 0]}
       >
         <boxGeometry args={[19, 10.6, 0.5]} />
@@ -335,7 +334,7 @@ export function Trackside({ gantries, day }: { gantries: GantryInfo[]; day: bool
       </mesh>
       <mesh
         geometry={seventyFive}
-        position={monument.point.clone().addScaledVector(monument.side, trackHalfWidth + 11).setY(5.1)}
+        position={monument.point.clone().addScaledVector(monument.side, trackHalfWidth + 11).setY(monument.point.y + 5.1)}
         rotation={[0, monument.yaw + Math.PI / 2, 0]}
         scale={0.92}
       >

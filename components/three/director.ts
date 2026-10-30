@@ -59,9 +59,9 @@ function frameShot(shot: ShotName, { point, tangent, side, u, orbit }: Pose, out
       break;
     case "harbour":
       // Hovers out over the water, looking back across the yachts at the car on the quay
-      position.copy(point).addScaledVector(side, -34).addScaledVector(tangent, -16).addScaledVector(up, 13);
-      target.copy(point).addScaledVector(up, 1.5);
-      out.fov = 34;
+      position.copy(point).addScaledVector(side, -92).addScaledVector(tangent, -26).addScaledVector(up, 20);
+      target.copy(point).addScaledVector(side, -20);
+      out.fov = 30;
       break;
     case "onboard":
       position.copy(point).addScaledVector(tangent, -0.5).addScaledVector(up, 1.04);

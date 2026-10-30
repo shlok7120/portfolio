@@ -1,6 +1,7 @@
 import { EasterEgg } from "@/components/hud/EasterEgg";
 import { Hud } from "@/components/hud/Hud";
 import { LightsOut } from "@/components/hud/LightsOut";
+import { TeamRadio } from "@/components/hud/TeamRadio";
 import { Driver } from "@/components/sections/Driver";
 import { Finish } from "@/components/sections/Finish";
 import { Grid } from "@/components/sections/Grid";
@@ -22,6 +23,7 @@ export default function Home() {
       <LightsOut />
       <LapExperience />
       <Hud />
+      <TeamRadio />
       <EasterEgg />
       <main className="relative z-10">
         <Grid />

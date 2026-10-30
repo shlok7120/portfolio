@@ -1,10 +1,20 @@
 import { CatmullRomCurve3, Vector3 } from "three";
-import { monacoPoints, seaStretch } from "./monaco";
+import { heightProfile, monacoPoints, seaStretch } from "./monaco";
 
 const scale = 1.25;
 
+function heightAt(lap: number) {
+  const next = heightProfile.findIndex(({ at }) => at > lap);
+  const low = heightProfile[next - 1];
+  const high = heightProfile[next];
+  const mix = (lap - low.at) / (high.at - low.at);
+  return low.height + (high.height - low.height) * (mix * mix * (3 - 2 * mix));
+}
+
 export const circuit = new CatmullRomCurve3(
-  monacoPoints.map(([east, north]) => new Vector3(east * scale, 0, -north * scale)),
+  monacoPoints.map(
+    ([east, north], i) => new Vector3(east * scale, heightAt(i / monacoPoints.length), -north * scale),
+  ),
   true,
   "centripetal",
 );
@@ -41,6 +51,30 @@ export function distanceToTrack(x: number, z: number) {
   return Math.min(...coarseTrack.map(({ point }) => Math.hypot(point.x - x, point.z - z)));
 }
 
+function nearestTrack(x: number, z: number) {
+  let nearest = coarseTrack[0].point;
+  let best = Infinity;
+  for (let i = 0; i < coarseTrack.length; i += 2) {
+    const { point } = coarseTrack[i];
+    const distance = (point.x - x) ** 2 + (point.z - z) ** 2;
+    if (distance < best) {
+      best = distance;
+      nearest = point;
+    }
+  }
+  return { point: nearest, distance: Math.sqrt(best) };
+}
+
+// Ground follows the road, then climbs into the mountains behind the town
+export function groundAt(x: number, z: number) {
+  if (inSea(x, z)) return -3;
+  const { point, distance } = nearestTrack(x, z);
+  const inland = Math.max(0, (z < 200 ? -z - 150 : 0) + (x < -300 ? -x - 300 : 0)) / 700;
+  const rise = Math.min(inland, 1);
+  const shoulder = Math.min(Math.max(distance - 30, 0) / 90, 1);
+  return point.y - 8 + shoulder * 9 + rise * rise * (3 - 2 * rise) * 190;
+}
+
 // The coast follows the left edge of the track, then runs out to open water
 export function seaOutline() {
   const coast: [number, number][] = [];
@@ -60,6 +94,20 @@ export function seaOutline() {
 
 const outline = seaOutline();
 
+function besideTrack(lap: number, offset: number): [number, number] {
+  const point = circuit.getPointAt(lap);
+  const side = new Vector3().crossVectors(circuit.getTangentAt(lap), new Vector3(0, 1, 0)).normalize();
+  const spot = point.addScaledVector(side, offset);
+  return [spot.x, spot.z];
+}
+
+export const casinoSpot = besideTrack(0.27, trackHalfWidth + 34);
+export const hotelSpot = besideTrack(0.245, -(trackHalfWidth + 26));
+const landmarkSpots: [number, number, number][] = [
+  [...casinoSpot, 62],
+  [...hotelSpot, 46],
+];
+
 export function inSea(x: number, z: number) {
   let inside = false;
   for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
@@ -68,4 +116,8 @@ export function inSea(x: number, z: number) {
     if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
+}
+
+export function nearLandmark(x: number, z: number) {
+  return landmarkSpots.some(([spotX, spotZ, radius]) => Math.hypot(spotX - x, spotZ - z) < radius);
 }

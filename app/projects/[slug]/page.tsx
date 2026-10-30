@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Demo } from "@/components/demos/Demo";
 import { Backdrop } from "@/components/report/Backdrop";
 import { SectorRail } from "@/components/report/SectorRail";
 import { BarChart } from "@/components/ui/BarChart";
@@ -38,6 +39,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
   const stages = [
     { id: "qualifying", label: "Qualifying", show: true },
     { id: "race", label: "The race", show: true },
+    { id: "test-drive", label: "Test drive", show: Boolean(project.demo) },
     { id: "design", label: "Design", show: Boolean(project.pipeline) },
     { id: "evidence", label: "Onboard", show: hasEvidence },
     { id: "telemetry", label: "Telemetry", show: project.charts.length > 0 },
@@ -131,6 +133,15 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
                 </ol>
               </section>
             </div>
+
+            {project.demo && (
+              <section id="test-drive">
+                <h2 className="tag">Test drive · Try it yourself</h2>
+                <div className="glass p-5 sm:p-7">
+                  <Demo name={project.demo} />
+                </div>
+              </section>
+            )}
 
             {project.pipeline && (
               <section id="design">

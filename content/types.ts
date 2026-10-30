@@ -61,6 +61,7 @@ export type Project = {
   charts: Chart[];
   incidents: Incident[];
   notes: string[];
+  demo?: "fleet" | "satquery" | "timeweave" | "recovery";
   stack: string[];
   links: { label: string; href: string }[];
 };

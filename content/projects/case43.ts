@@ -41,6 +41,7 @@ export const case43: Project = {
     "This is coursework on an assigned case. It didn't include code, so the defect is reconstructed and the prototype isn't a production system.",
     "The key test replays the original attack and expects a rejection with MFA still enrolled. Mutation testing confirmed the tests fail when the defect is put back.",
   ],
+  demo: "recovery",
   stack: ["Python", "pytest", "Threat modelling", "NIST SP 800-63B"],
   links: [],
 };

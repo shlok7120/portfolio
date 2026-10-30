@@ -2,6 +2,7 @@ import Image from "next/image";
 
 const variants = [
   { name: "day", className: "only-day" },
+  { name: "golden", className: "only-golden" },
   { name: "night", className: "only-night" },
 ];
 

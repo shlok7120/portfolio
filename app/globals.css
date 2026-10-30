@@ -29,6 +29,19 @@ html[data-day] {
   --color-yellow: #8a5a00;
 }
 
+html[data-golden] {
+  --color-carbon: #18110d;
+  --color-panel: #231913;
+  --color-line: #4a382b;
+  --color-ink: #fff4e6;
+  --color-muted: #d0bba6;
+  --color-lime: #ffb347;
+  --color-red: #ff6a45;
+  --color-purple: #d9a2ff;
+  --color-green: #8fd6a8;
+  --color-yellow: #ffd479;
+}
+
 html {
   background: var(--color-carbon);
 }
@@ -165,7 +178,9 @@ html:not([data-green]) .rise {
 }
 
 html[data-day] .only-night,
-html:not([data-day]) .only-day {
+html[data-golden] .only-night,
+html:not([data-day]) .only-day,
+html:not([data-golden]) .only-golden {
   display: none;
 }
 
@@ -177,6 +192,22 @@ html:not([data-day]) .only-day {
   from {
     opacity: 0;
     transform: translateY(0.35em);
+  }
+}
+
+.radio-in {
+  animation: rise-in 0.35s ease-out both;
+}
+
+.radio-bar {
+  height: 100%;
+  transform-origin: bottom;
+  animation: radio-bar 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes radio-bar {
+  from {
+    transform: scaleY(0.25);
   }
 }
 
@@ -283,6 +314,8 @@ html:not([data-day]) .only-day {
   .ticker,
   .reveal,
   .rise-in,
+  .radio-in,
+  .radio-bar,
   .live-dot {
     animation: none;
   }

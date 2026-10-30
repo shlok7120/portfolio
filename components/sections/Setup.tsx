@@ -1,3 +1,4 @@
+import { GarageButton } from "@/components/garage/GarageButton";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { compounds, setup } from "@/content/skills";
 
@@ -25,6 +26,8 @@ export function Setup() {
           </li>
         ))}
       </ul>
+
+      <GarageButton />
 
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {setup.map((group) => (

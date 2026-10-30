@@ -101,7 +101,7 @@ export function Sky({ top, horizon, sun, sunStrength, clouds, stars }: SkyProps)
 
   return (
     <mesh ref={dome} material={material} renderOrder={-1} frustumCulled={false}>
-      <sphereGeometry args={[1100, 32, 16]} />
+      <sphereGeometry args={[2300, 32, 16]} />
     </mesh>
   );
 }

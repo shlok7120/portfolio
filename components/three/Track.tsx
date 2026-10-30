@@ -5,17 +5,21 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  CylinderGeometry,
   DataTexture,
   DoubleSide,
+  ExtrudeGeometry,
   type InstancedMesh,
   type Material,
   Matrix4,
   MeshStandardMaterial,
   NearestFilter,
+  PlaneGeometry,
   Quaternion,
   RGBAFormat,
   Shape,
   ShapeGeometry,
+  SphereGeometry,
   SRGBColorSpace,
   Vector2,
   Vector3,
@@ -25,19 +29,23 @@ import {
   circuit,
   circuitLength,
   distanceToTrack,
+  groundAt,
   inSea,
+  nearLandmark,
   sampleTrack,
   seaOutline,
   trackHalfWidth,
   type TrackSample,
 } from "@/lib/circuit";
 import { harbourStretch, tunnelStretch } from "@/lib/monaco";
-import { addWindows, grassTexture, tarmacTexture } from "./surfaces";
+import { addWindows, tarmacTexture } from "./surfaces";
 
 const samples = sampleTrack(2600);
 const lime = "#c8ff00";
 
 const tarmacRepeat = 30;
+const cityPaint = ["#efe3cd", "#e8cfae", "#e6bd9a", "#f1dcc3", "#d9c7ad", "#f3ece0"];
+const nightPaint = ["#191c22", "#1d1e22", "#1a1a1e"];
 
 function ribbon(
   inner: number,
@@ -56,7 +64,7 @@ function ribbon(
     const sample = samples[i % samples.length];
     const a = sample.point.clone().addScaledVector(sample.side, inner);
     const b = sample.point.clone().addScaledVector(sample.side, outer);
-    positions.set([a.x, y, a.z, b.x, y, b.z], i * 6);
+    positions.set([a.x, a.y + y, a.z, b.x, b.y + y, b.z], i * 6);
     uvs.set([0, (i / samples.length) * stretch, 1, (i / samples.length) * stretch], i * 4);
     if (colors && colorAt) {
       const { r, g, b: blue } = colorAt(sample, i);
@@ -100,7 +108,7 @@ function buildTunnel() {
   const reach = trackHalfWidth + 1.6;
   const height = 6.5;
   const edge = (sample: TrackSample, offset: number, y: number) =>
-    sample.point.clone().addScaledVector(sample.side, offset).setY(y);
+    sample.point.clone().addScaledVector(sample.side, offset).setY(sample.point.y + y);
 
   const shell = mergeGeometries([
     strip(from, to, (sample) => [edge(sample, -reach, height), edge(sample, reach, height)]),
@@ -114,7 +122,7 @@ function buildTunnel() {
   for (let i = 0; i < count; i++) {
     const sample = samples[Math.floor((from + ((to - from) * i) / count) * samples.length)];
     lamps.push({
-      position: sample.point.clone().setY(height - 0.15),
+      position: sample.point.clone().setY(sample.point.y + height - 0.15),
       scale: new Vector3(1, 1, 1),
       yaw: Math.atan2(sample.tangent.x, sample.tangent.z),
     });
@@ -122,10 +130,80 @@ function buildTunnel() {
   return { shell, shade, lamps: buildMatrices(lamps) };
 }
 
+function buildWalls() {
+  const edge = (sample: TrackSample, offset: number, y: number) =>
+    sample.point.clone().addScaledVector(sample.side, offset).setY(sample.point.y + y);
+  const reach = trackHalfWidth + 6;
+  const wall = (offset: number) =>
+    strip(0, 0.9996, (sample) => [edge(sample, offset, 0.05), edge(sample, offset, -9)]);
+  return mergeGeometries([wall(-reach), wall(reach)]);
+}
+
+const terrainSize = 3400;
+const terrainSteps = 120;
+
+function buildTerrain() {
+  const geometry = new PlaneGeometry(terrainSize, terrainSize, terrainSteps, terrainSteps);
+  geometry.rotateX(-Math.PI / 2);
+  const positions = geometry.attributes.position as BufferAttribute;
+  const colors = new Float32Array(positions.count * 3);
+  const paint = new Color();
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const z = positions.getZ(i);
+    const y = groundAt(x, z);
+    positions.setY(i, y);
+    const height = Math.min(Math.max((y - 50) / 130, 0), 1);
+    paint.set(height > 0.65 ? "#9b9383" : height > 0.08 ? "#6d7a4e" : "#b5ad9c");
+    colors.set([paint.r, paint.g, paint.b], i * 3);
+  }
+  geometry.setAttribute("color", new BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 // The right of the pit straight stays open, so the harbour shows behind the car
 function onPitStraight(sample: TrackSample) {
   const lap = samples.indexOf(sample) / samples.length;
   return lap < 0.16 || lap > 0.84;
+}
+
+function buildPalm() {
+  const parts: BufferGeometry[] = [new CylinderGeometry(0.1, 0.2, 7, 6).translate(0, 3.5, 0)];
+  const trunks = parts[0].attributes.position.count;
+  for (let i = 0; i < 7; i++) {
+    const frond = new SphereGeometry(1, 6, 3);
+    frond.scale(0.5, 0.09, 1.9);
+    frond.translate(0, 0, 1.75);
+    frond.rotateX(0.32);
+    frond.rotateY((i / 7) * Math.PI * 2);
+    frond.translate(0, 7, 0);
+    parts.push(frond);
+  }
+  const palm = mergeGeometries(parts.map((part) => part.toNonIndexed()));
+  const colors = new Float32Array(palm.attributes.position.count * 3);
+  const count = trunks * 2;
+  for (let i = 0; i < palm.attributes.position.count; i++) {
+    const trunk = palm.attributes.position.getY(i) < 6.6 && i < count;
+    colors.set(trunk ? [0.32, 0.23, 0.15] : [0.2, 0.36, 0.13], i * 3);
+  }
+  palm.setAttribute("color", new BufferAttribute(colors, 3));
+  palm.computeVertexNormals();
+  return palm;
+}
+
+function buildHull() {
+  const outline = new Shape();
+  outline.moveTo(0, 13);
+  outline.bezierCurveTo(2.6, 7, 3.2, 2, 3.2, -9);
+  outline.lineTo(2.6, -13);
+  outline.lineTo(-2.6, -13);
+  outline.lineTo(-3.2, -9);
+  outline.bezierCurveTo(-3.2, 2, -2.6, 7, 0, 13);
+  const hull = new ExtrudeGeometry(outline, { depth: 2.2, bevelEnabled: false, curveSegments: 8 });
+  hull.rotateX(Math.PI / 2);
+  hull.translate(0, 1.1, 0);
+  return hull;
 }
 
 function random(seed: number) {
@@ -143,19 +221,26 @@ function buildMatrices(items: { position: Vector3; scale: Vector3; yaw?: number 
 function Instances({
   matrices,
   material,
+  colors,
   children,
 }: {
   matrices: Matrix4[];
   material?: Material;
+  colors?: string[];
   children: React.ReactNode;
 }) {
   const ref = useRef<InstancedMesh>(null);
 
   useLayoutEffect(() => {
     if (!ref.current) return;
-    matrices.forEach((matrix, i) => ref.current?.setMatrixAt(i, matrix));
+    const paint = new Color();
+    matrices.forEach((matrix, i) => {
+      ref.current?.setMatrixAt(i, matrix);
+      if (colors) ref.current?.setColorAt(i, paint.set(colors[Math.floor(random(i + 40) * colors.length)]));
+    });
     ref.current.instanceMatrix.needsUpdate = true;
-  }, [matrices]);
+    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
+  }, [matrices, colors]);
 
   return (
     <instancedMesh
@@ -217,20 +302,20 @@ function StartLine() {
   );
 }
 
-export function Track({ wet, day }: { wet: boolean; day: boolean }) {
+export function Track({ wet, day, golden }: { wet: boolean; day: boolean; golden: boolean }) {
   const road = useMemo(() => ribbon(-trackHalfWidth, trackHalfWidth, 0), []);
   const tarmac = useMemo(() => tarmacTexture(), []);
-  const grass = useMemo(() => grassTexture(), []);
+  const terrain = useMemo(() => buildTerrain(), []);
+  const walls = useMemo(() => buildWalls(), []);
   const towerMaterial = useMemo(() => {
     const material = new MeshStandardMaterial({
-      color: day ? "#e6decf" : "#191c22",
-      roughness: 0.45,
-      metalness: 0.2,
-      envMapIntensity: day ? 0.5 : 0.1,
+      roughness: 0.5,
+      metalness: 0.1,
+      envMapIntensity: day ? 0.45 : 0.1,
     });
-    addWindows(material, day ? "#4d6f90" : "#0a0e14", day ? 0 : 1);
+    addWindows(material, day ? "#46637f" : "#0a0e14", golden ? 0.3 : day ? 0 : 1);
     return material;
-  }, [day]);
+  }, [day, golden]);
   const pavement = useMemo(
     () => [
       ribbon(-trackHalfWidth - 6, -trackHalfWidth - 1.2, 0.05),
@@ -267,7 +352,7 @@ export function Track({ wet, day }: { wet: boolean; day: boolean }) {
     for (let i = 0; i < count; i++) {
       const sample = samples[Math.floor((i / count) * samples.length)];
       items.push({
-        position: sample.point.clone().setY(0.025),
+        position: sample.point.clone().setY(sample.point.y + 0.025),
         scale: new Vector3(1, 1, 1),
         yaw: Math.atan2(sample.tangent.x, sample.tangent.z),
       });
@@ -284,34 +369,42 @@ export function Track({ wet, day }: { wet: boolean; day: boolean }) {
       const position = sample.point.clone().addScaledVector(sample.side, offset);
       if (inSea(position.x, position.z) || distanceToTrack(position.x, position.z) < 25) continue;
       if (offset > 0 && onPitStraight(sample)) continue;
+      if (nearLandmark(position.x, position.z)) continue;
       const width = 9 + random(i + 200) * 14;
       const depth = 9 + random(i + 300) * 14;
       const height = 12 + random(i + 400) ** 2 * 80;
+      const base = groundAt(position.x, position.z) - 2;
       bodies.push({
-        position: position.clone().setY(height / 2),
+        position: position.clone().setY(base + height / 2),
         scale: new Vector3(width, height, depth),
       });
       caps.push({
-        position: position.clone().setY(height + 0.2),
-        scale: new Vector3(width, 0.3, depth),
+        position: position.clone().setY(base + height + 0.2),
+        scale: new Vector3(width + 0.8, 0.5, depth + 0.8),
       });
     }
     return { bodies: buildMatrices(bodies), caps: buildMatrices(caps) };
   }, []);
 
-  const trees = useMemo(() => {
+  const palms = useMemo(() => {
     const items = [];
-    for (let i = 0; i < 320; i++) {
+    for (let i = 0; i < 420; i++) {
       const sample = samples[Math.floor(random(i + 2000) * samples.length)];
-      const offset = (10 + random(i + 3000) * 34) * (random(i + 4000) > 0.5 ? 1 : -1);
+      const offset = (trackHalfWidth + 3.4 + random(i + 3000) * 2) * (random(i + 4000) > 0.5 ? 1 : -1);
       const position = sample.point.clone().addScaledVector(sample.side, offset);
-      if (inSea(position.x, position.z) || distanceToTrack(position.x, position.z) < 10) continue;
-      if (offset > 0 && onPitStraight(sample)) continue;
-      const size = 0.5 + random(i + 5000) * 0.55;
-      items.push({ position: position.setY(3.2 * size), scale: new Vector3(size, size * 1.25, size) });
+      if (distanceToTrack(position.x, position.z) < trackHalfWidth + 3) continue;
+      const size = 0.8 + random(i + 5000) * 0.5;
+      items.push({
+        position: position.setY(sample.point.y),
+        scale: new Vector3(size, size, size),
+        yaw: random(i + 5500) * 6.28,
+      });
     }
     return buildMatrices(items);
   }, []);
+
+  const palmShape = useMemo(() => buildPalm(), []);
+  const yachtHull = useMemo(() => buildHull(), []);
 
   const yachts = useMemo(() => {
     const hulls = [];
@@ -323,30 +416,33 @@ export function Track({ wet, day }: { wet: boolean; day: boolean }) {
       if (!inSea(position.x, position.z) || distanceToTrack(position.x, position.z) < 16) continue;
       const length = 12 + random(i + 8000) * 26;
       const yaw = Math.round(random(i + 9000)) * Math.PI + Math.PI / 2 + Math.atan2(sample.tangent.x, sample.tangent.z);
-      hulls.push({ position: position.clone().setY(0.9), scale: new Vector3(length * 0.26, 2, length), yaw });
-      cabins.push({ position: position.clone().setY(2.8), scale: new Vector3(length * 0.17, 2, length * 0.5), yaw });
+      hulls.push({ position: position.clone().setY(1.2), scale: new Vector3(length / 26, 1, length / 26), yaw });
+      cabins.push({ position: position.clone().setY(3), scale: new Vector3(length * 0.16, 2, length * 0.46), yaw });
     }
     return { hulls: buildMatrices(hulls), cabins: buildMatrices(cabins) };
   }, []);
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-        <circleGeometry args={[2600, 48]} />
+      <mesh geometry={terrain} receiveShadow>
         <meshStandardMaterial
-          map={grass}
-          color={day ? "#9c9a8f" : "#0b0d10"}
+          vertexColors
+          color={day ? "#ffffff" : "#20242a"}
           roughness={1}
+          flatShading
           envMapIntensity={0}
         />
       </mesh>
+      <mesh geometry={walls}>
+        <meshStandardMaterial color={day ? "#c9c2b3" : "#16181c"} roughness={0.95} side={DoubleSide} envMapIntensity={0} />
+      </mesh>
 
-      <mesh geometry={sea} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
+      <mesh geometry={sea} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <meshStandardMaterial
-          color={day ? "#1f78ab" : "#05121c"}
-          roughness={wet ? 0.45 : 0.16}
-          metalness={0.35}
-          envMapIntensity={day ? 0.9 : 0.4}
+          color={day ? "#135f92" : "#05121c"}
+          roughness={wet ? 0.5 : 0.28}
+          metalness={0.1}
+          envMapIntensity={day ? 0.22 : 0.12}
         />
       </mesh>
 
@@ -379,20 +475,20 @@ export function Track({ wet, day }: { wet: boolean; day: boolean }) {
         <boxGeometry args={[0.16, 0.01, 3]} />
         <meshBasicMaterial color={day ? "#d6dae0" : "#59616d"} />
       </Instances>
-      <Instances matrices={towers.bodies} material={towerMaterial}>
+      <Instances matrices={towers.bodies} material={towerMaterial} colors={day ? cityPaint : nightPaint}>
         <boxGeometry args={[1, 1, 1]} />
       </Instances>
       <Instances matrices={towers.caps}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color={day ? "#e7ebef" : "#6f8d12"} />
+        <meshStandardMaterial color={day ? "#b4623f" : "#161311"} roughness={0.8} envMapIntensity={0} />
       </Instances>
-      <Instances matrices={trees}>
-        <icosahedronGeometry args={[3, 1]} />
-        <meshStandardMaterial color={day ? "#4d7f45" : "#0d1411"} roughness={1} flatShading envMapIntensity={0} />
+      <Instances matrices={palms} material={undefined}>
+        <primitive object={palmShape} attach="geometry" />
+        <meshStandardMaterial vertexColors roughness={0.9} flatShading envMapIntensity={0} color={day ? "#ffffff" : "#1c2420"} />
       </Instances>
 
       <Instances matrices={yachts.hulls}>
-        <boxGeometry args={[1, 1, 1]} />
+        <primitive object={yachtHull} attach="geometry" />
         <meshStandardMaterial color={day ? "#f3f4f6" : "#20242a"} roughness={0.3} />
       </Instances>
       <Instances matrices={yachts.cabins}>

@@ -103,6 +103,7 @@ export const satquery: Project = {
     "Grounding covers 5 land-cover classes, and counting is still unreliable.",
     "Evaluation samples are small, and the change model's benchmark uses the same image source it trained on. A committed script confirmed none of CDVQA's 968 test pairs were in training.",
   ],
+  demo: "satquery",
   stack: ["React", "FastAPI", "PostgreSQL", "SmolVLM", "OpenCV", "NumPy", "PyTorch"],
   links: [{ label: "Source", href: "https://github.com/harshkulkarni2234/SatQuery-Ai_SIH" }],
 };

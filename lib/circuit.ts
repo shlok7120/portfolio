@@ -167,15 +167,11 @@ export function seaOutline() {
 
 const outline = seaOutline();
 
-function besideTrack(lap: number, offset: number): [number, number] {
-  const point = circuit.getPointAt(lap);
-  const side = new Vector3().crossVectors(circuit.getTangentAt(lap), new Vector3(0, 1, 0)).normalize();
-  const spot = point.addScaledVector(side, offset);
-  return [spot.x, spot.z];
-}
-
-export const casinoSpot = besideTrack(0.27, trackHalfWidth + 34);
-export const hotelSpot = besideTrack(0.245, -(trackHalfWidth + 26));
+// Chosen so each footprint stays 14 clear of every part of the road, with its front facing the track
+export const casinoSpot: [number, number] = [127.1, -379.6];
+export const casinoYaw = 1.12;
+export const hotelSpot: [number, number] = [266.4, -386.9];
+export const hotelYaw = -2.212;
 const landmarkSpots: [number, number, number][] = [
   [...casinoSpot, 62],
   [...hotelSpot, 46],
